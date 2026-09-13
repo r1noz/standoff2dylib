@@ -25,6 +25,7 @@ jobs:
         run: |
           echo "Setting up Theos..."
           git clone --recursive https://github.com/theos/theos.git $GITHUB_WORKSPACE/theos
+          rm -rf $GITHUB_WORKSPACE/theos/sdks
           git clone --depth=1 https://github.com/theos/sdks.git $GITHUB_WORKSPACE/theos/sdks
           echo "THEOS=$GITHUB_WORKSPACE/theos" >> $GITHUB_ENV
 
