@@ -3,13 +3,9 @@
 #import <mach-o/loader.h>
 #import <mach-o/fat.h>
 #import <mach-o/dyld.h>
-#import <mach-o/fat.h>
-#import <mach-o/loader.h>
-#import <mach-o/dyld.h>
 #include <mach-o/dyld_images.h>
 #import <mach/mach.h>
 #import <mach/vm_page_size.h>
-#import <mach/mach.h>
 #import <mach/task_info.h>
 #import <mach/mach_traps.h>
 #import <stdio.h>
@@ -21,14 +17,9 @@
 #import <array>
 #import <string>
 #import <UIKit/UIKit.h>
-#include <mach/mach.h>
-#include <mach-o/dyld_images.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 #include <limits.h>
 #import "pid.h"
-
 
 struct dyld_uuid_info64 {
     mach_vm_address_t    imageLoadAddress;
@@ -66,8 +57,6 @@ struct dyld_all_image_infos64 {
     uint64_t                    sharedCacheSlide;
 };
 
-
-
 mach_port_t get_task_for_PID(pid_t pid)
 {
     mach_port_t task;
@@ -83,8 +72,10 @@ mach_port_t get_task_for_PID(pid_t pid)
 pid_t get_pid_by_name(const char *keyword)
 {
     int count = proc_listallpids(NULL, 0);
-    pid_t pids[count];
-    proc_listallpids(pids, sizeof(pids));
+    
+    // Исправление ошибки VLA: выделяем память динамически
+    pid_t *pids = new pid_t[count];
+    proc_listallpids(pids, count * sizeof(pid_t));
     
     for (int i = 0; i < count; i++)
     {
@@ -92,10 +83,13 @@ pid_t get_pid_by_name(const char *keyword)
         proc_name(pids[i], name, sizeof(name));
         if (strcasestr(name, keyword) != NULL) // Ищем без учета регистра
         {
-            return pids[i];
+            pid_t target_pid = pids[i];
+            delete[] pids; // Очищаем память перед возвратом
+            return target_pid;
         }
     }
     
+    delete[] pids; // Очищаем память, если процесс не найден
     return -1;
 }
 
@@ -109,7 +103,6 @@ __attribute__((__annotate__("indibran_use_stack bcf_prob=100 bcf_junkasm bcf_jun
     mach_msg_type_number_t numTasks;
     kern_return_t kr;
 
-   
     host_t self_host = mach_host_self();
     kr = processor_set_default(self_host, &psDefault);
     if (kr != KERN_SUCCESS)
@@ -118,7 +111,6 @@ __attribute__((__annotate__("indibran_use_stack bcf_prob=100 bcf_junkasm bcf_jun
         return MACH_PORT_NULL;
     }
 
-   
     kr = host_processor_set_priv(self_host, psDefault, &psDefault_control);
     if (kr != KERN_SUCCESS)
     {
@@ -126,14 +118,12 @@ __attribute__((__annotate__("indibran_use_stack bcf_prob=100 bcf_junkasm bcf_jun
         return MACH_PORT_NULL;
     }
 
-  
     kr = processor_set_tasks(psDefault_control, &tasks, &numTasks);
     if (kr != KERN_SUCCESS) {
         fprintf(stderr, "Error in processor_set_tasks: %x\n", kr);
         return MACH_PORT_NULL;
     }
 
-  
     for (int i = 0; i < numTasks; i++)
     {
         int task_pid;
@@ -216,4 +206,3 @@ __attribute__((__annotate__("indibran_use_stack bcf_prob=100 bcf_junkasm bcf_jun
     free(image_infos);
     return 0;
 }
-
