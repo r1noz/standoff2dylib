@@ -1,8 +1,10 @@
-name: Build Standoff2 Dylib
+name: Build PastaCode Dylib
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
   workflow_dispatch:
 
 jobs:
@@ -10,36 +12,33 @@ jobs:
     runs-on: macos-latest
 
     steps:
-    # 1. Скачиваем репозиторий
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
-    # 2. Устанавливаем системные утилиты для архивации (нужны Theos)
-    - name: Install Dependencies
-      run: |
-        brew install lzma xz
+      - name: Install Build Dependencies
+        run: |
+          brew install dpkg ldid
 
-    # 3. Скачиваем фреймворк Theos во временную папку
-    - name: Setup Theos
-      run: |
-        git clone --recursive https://github.com ~/theos
-        echo "THEOS=~/theos" >> $GITHUB_ENV
-        echo "~/theos/bin" >> $GITHUB_PATH
+      - name: Setup Theos & SDKs
+        run: |
+          echo "Setting up Theos..."
+          git clone --recursive https://github.com/theos/theos.git $GITHUB_WORKSPACE/theos
+          git clone --depth=1 https://github.com/theos/sdks.git $GITHUB_WORKSPACE/theos/sdks
+          echo "THEOS=$GITHUB_WORKSPACE/theos" >> $GITHUB_ENV
 
-    # 4. Скачиваем iOS SDK (включает нужный вам 16.5)
-    - name: Setup iOS SDK
-      run: |
-        git clone https://github.com ~/theos/sdks
+      - name: Build PastaCode Dylib
+        run: |
+          export THEOS=$GITHUB_WORKSPACE/theos
+          chmod +x build.sh
+          ./build.sh
 
-    # 5. Делаем ваш скрипт исполняемым и запускаем его
-    - name: Run Build Script
-      run: |
-        chmod +x build.sh
-        ./build.sh
-
-    # 6. Сохраняем скомпилированный файл на GitHub
-    - name: Upload Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: PastaCode-dylib
-        path: "packages/PastaCode.dylib"
+      - name: Upload Dylib Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: PastaCode-dylib
+          path: |
+            packages/PastaCode.dylib
+            PastaCode.plist
+          if-no-files-found: error
