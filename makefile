@@ -22,9 +22,12 @@ $(TWEAK_NAME)_OBJCCFLAGS += -fobjc-arc
 $(TWEAK_NAME)_CXXFLAGS += -std=c++17
 $(TWEAK_NAME)_OBJCXXFLAGS += -std=c++17
 
-$(TWEAK_NAME)_CFLAGS += -Iheaders
-$(TWEAK_NAME)_CFLAGS += -Isources
-$(TWEAK_NAME)_CFLAGS += -Isources/KIF
+$(TWEAK_NAME)_CFLAGS += -I$(THEOS_PROJECT_DIR)/headers
+$(TWEAK_NAME)_CFLAGS += -I$(THEOS_PROJECT_DIR)/sources
+$(TWEAK_NAME)_CFLAGS += -I$(THEOS_PROJECT_DIR)/sources/KIF
+
+$(TWEAK_NAME)_OBJCCFLAGS += -I$(THEOS_PROJECT_DIR)/headers
+$(TWEAK_NAME)_CXXFLAGS += -I$(THEOS_PROJECT_DIR)/headers
 
 sources/KIF/UITouch-KIFAdditions.m_CFLAGS := $(filter-out -mllvm -enable-fco,$(PastaCode_CFLAGS))
 
