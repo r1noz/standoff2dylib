@@ -1,0 +1,45 @@
+name: Build Standoff2 Dylib
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+    # 1. Скачиваем репозиторий
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    # 2. Устанавливаем системные утилиты для архивации (нужны Theos)
+    - name: Install Dependencies
+      run: |
+        brew install lzma xz
+
+    # 3. Скачиваем фреймворк Theos во временную папку
+    - name: Setup Theos
+      run: |
+        git clone --recursive https://github.com ~/theos
+        echo "THEOS=~/theos" >> $GITHUB_ENV
+        echo "~/theos/bin" >> $GITHUB_PATH
+
+    # 4. Скачиваем iOS SDK (включает нужный вам 16.5)
+    - name: Setup iOS SDK
+      run: |
+        git clone https://github.com ~/theos/sdks
+
+    # 5. Делаем ваш скрипт исполняемым и запускаем его
+    - name: Run Build Script
+      run: |
+        chmod +x build.sh
+        ./build.sh
+
+    # 6. Сохраняем скомпилированный файл на GitHub
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: PastaCode-dylib
+        path: "packages/PastaCode.dylib"
